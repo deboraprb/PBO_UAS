@@ -172,7 +172,6 @@ class BaseRepository(ABC):
 # ─────────────────────────────────────────
 
 class User:
-    """Model untuk pengguna"""
     def __init__(self, id, name, email, phone, role, created_at=None, **kwargs):
         self.id = id
         self.name = name
@@ -195,6 +194,27 @@ class User:
     def hash_password(password):
         return hashlib.sha256(password.encode()).hexdigest()
 
+class Admin(User):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def kelolaLayanan(self):
+        return "Admin mengelola layanan"
+
+    def konfirmasiPesanan(self):
+        return "Admin mengonfirmasi pesanan"
+    
+class Customer(User):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def buatPesanan(self):
+        return "Pelanggan membuat pesanan"
+
+    def lihatRiwayat(self):
+        return "Pelanggan melihat riwayat"
 
 class Service:
     """Model untuk layanan salon"""
@@ -221,7 +241,6 @@ class Service:
 
 
 class Stylist:
-    """Model untuk stylist"""
     def __init__(self, id, name, specialty, bio, photo_url=None, is_available=True):
         self.id = id
         self.name = name
@@ -242,7 +261,6 @@ class Stylist:
 
 
 class Reservation:
-    """Model untuk reservasi"""
     VALID_STATUSES = ["pending", "confirmed", "completed", "cancelled"]
 
     def __init__(self, id, user_id, stylist_id, service_id, reservation_date,
@@ -283,6 +301,31 @@ class Reservation:
             "created_at": self.created_at
         }
 
+class Payment:
+
+    def __init__(
+        self,
+        id,
+        reservation_id,
+        metode_bayar,
+        status_lunas=False
+    ):
+        self.id = id
+        self.reservation_id = reservation_id
+        self.metode_bayar = metode_bayar
+        self.status_lunas = status_lunas
+
+    def verifikasiPembayaran(self):
+        self.status_lunas = True
+        return self.status_lunas
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "reservation_id": self.reservation_id,
+            "metode_bayar": self.metode_bayar,
+            "status_lunas": self.status_lunas
+        }
 
 # ─────────────────────────────────────────
 # REPOSITORY CLASSES
