@@ -180,11 +180,11 @@ class Pengguna(ABC):
         self._password = password
 
     @abstractmethod
-    def login(self):
+    def login(self, db_manager):
         pass
 
     @abstractmethod
-    def logout(self):
+    def logout(self, db_manager, token):
         pass
 
     @staticmethod
@@ -203,17 +203,29 @@ class Admin(Pengguna):
         self.created_at = created_at
         self.role = "admin"
 
-    def kelolaLayanan(self):
-        pass
+    def kelolaLayanan(self, repo, action, **kwargs):
+        if action == "create":
+            return repo.create(kwargs['name'], kwargs['category'], kwargs.get('description', ''), kwargs['duration_minutes'], kwargs['price'])
+        elif action == "update":
+            service_id = kwargs.pop('id')
+            return repo.update(service_id, **kwargs)
+        elif action == "delete":
+            repo.delete(kwargs['id'])
+            return True
+        return False
 
-    def konfirmasiPesanan(self):
-        pass
-
-    def login(self):
+    def konfirmasiPesanan(self, repo, id_pesanan, status="confirmed"):
+        repo.update_status(id_pesanan, status)
         return True
 
-    def logout(self):
-        pass
+    def login(self, db_manager):
+        token = secrets.token_hex(32)
+        db_manager.execute("INSERT INTO auth_tokens (token, user_id) VALUES (?, ?)", (token, self._id))
+        return token
+
+    def logout(self, db_manager, token):
+        db_manager.execute("DELETE FROM auth_tokens WHERE token = ?", (token,))
+        return True
 
     def to_dict(self):
         return {
@@ -233,17 +245,22 @@ class Pelanggan(Pengguna):
         self.created_at = created_at
         self.role = "customer"
 
-    def buatPesanan(self):
-        pass
+    def buatPesanan(self, service_res, stylist_id, service_id, reservation_date, reservation_time, notes=""):
+        return service_res.create_reservation(
+            self._id, stylist_id, service_id, reservation_date, reservation_time, notes
+        )
 
-    def lihatRiwayat(self):
-        pass
+    def lihatRiwayat(self, repo_res):
+        return repo_res.get_by_user(self._id)
 
-    def login(self):
+    def login(self, db_manager):
+        token = secrets.token_hex(32)
+        db_manager.execute("INSERT INTO auth_tokens (token, user_id) VALUES (?, ?)", (token, self._id))
+        return token
+
+    def logout(self, db_manager, token):
+        db_manager.execute("DELETE FROM auth_tokens WHERE token = ?", (token,))
         return True
-
-    def logout(self):
-        pass
 
     def to_dict(self):
         return {
@@ -726,15 +743,20 @@ def register():
 @app.route("/api/auth/login", methods=["POST"])
 def login():
     data = request.json
-    result = auth_service.login(data.get("email"), data.get("password"))
-    if result["success"]:
-        # Generate token and store in DB
-        token = secrets.token_hex(32)
+    email = data.get("email")
+    password = data.get("password")
+    
+    user_row = user_repo.verify_password(email, password)
+    if user_row:
+        user_obj = user_repo.get_by_id(user_row["id"])
         db = DatabaseManager()
-        db.execute("INSERT INTO auth_tokens (token, user_id) VALUES (?, ?)",
-                   (token, result["user"]["id"]))
-        result["token"] = token
-    return jsonify(result), 200 if result["success"] else 401
+        token = user_obj.login(db)
+        return jsonify({
+            "success": True,
+            "token": token,
+            "user": user_obj.to_dict()
+        }), 200
+    return jsonify({"success": False, "message": "Email atau password salah"}), 401
 
 
 @app.route("/api/auth/logout", methods=["POST"])
@@ -742,8 +764,16 @@ def logout():
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         token = auth_header[7:]
+        user_id, _ = _get_user_from_token()
         db = DatabaseManager()
-        db.execute("DELETE FROM auth_tokens WHERE token = ?", (token,))
+        if user_id:
+            user_obj = user_repo.get_by_id(user_id)
+            if user_obj:
+                user_obj.logout(db, token)
+            else:
+                db.execute("DELETE FROM auth_tokens WHERE token = ?", (token,))
+        else:
+            db.execute("DELETE FROM auth_tokens WHERE token = ?", (token,))
     return jsonify({"success": True, "message": "Berhasil logout"})
 
 
@@ -780,10 +810,8 @@ def get_service(id):
 @require_admin
 def create_service():
     data = request.json
-    id = service_repo.create(
-        data["name"], data["category"], data.get("description", ""),
-        data["duration_minutes"], data["price"]
-    )
+    admin = user_repo.get_by_id(request.user_id)
+    id = admin.kelolaLayanan(service_repo, "create", **data)
     return jsonify({"success": True, "id": id}), 201
 
 
@@ -791,14 +819,17 @@ def create_service():
 @require_admin
 def update_service(id):
     data = request.json
-    service_repo.update(id, **data)
+    data["id"] = id
+    admin = user_repo.get_by_id(request.user_id)
+    admin.kelolaLayanan(service_repo, "update", **data)
     return jsonify({"success": True})
 
 
 @app.route("/api/services/<int:id>", methods=["DELETE"])
 @require_admin
 def delete_service(id):
-    service_repo.delete(id)
+    admin = user_repo.get_by_id(request.user_id)
+    admin.kelolaLayanan(service_repo, "delete", id=id)
     return jsonify({"success": True})
 
 
@@ -825,7 +856,11 @@ def get_reservations():
     if request.user_role == "admin":
         rows = reservation_repo.get_all()
     else:
-        rows = reservation_repo.get_by_user(request.user_id)
+        pelanggan = user_repo.get_by_id(request.user_id)
+        if isinstance(pelanggan, Pelanggan):
+            rows = pelanggan.lihatRiwayat(reservation_repo)
+        else:
+            rows = reservation_repo.get_by_user(request.user_id)
     return jsonify({"success": True, "data": rows})
 
 
@@ -833,14 +868,25 @@ def get_reservations():
 @require_auth
 def create_reservation():
     data = request.json
-    result = reservation_service.create_reservation(
-        request.user_id,
-        data.get("stylist_id"),
-        data.get("service_id"),
-        data.get("reservation_date"),
-        data.get("reservation_time"),
-        data.get("notes", "")
-    )
+    pelanggan = user_repo.get_by_id(request.user_id)
+    if isinstance(pelanggan, Pelanggan):
+        result = pelanggan.buatPesanan(
+            reservation_service,
+            data.get("stylist_id"),
+            data.get("service_id"),
+            data.get("reservation_date"),
+            data.get("reservation_time"),
+            data.get("notes", "")
+        )
+    else:
+        result = reservation_service.create_reservation(
+            request.user_id,
+            data.get("stylist_id"),
+            data.get("service_id"),
+            data.get("reservation_date"),
+            data.get("reservation_time"),
+            data.get("notes", "")
+        )
     return jsonify(result), 201 if result["success"] else 400
 
 
@@ -851,7 +897,9 @@ def update_status(id):
     status = data.get("status")
     if status not in Pemesanan.VALID_STATUSES:
         return jsonify({"success": False, "message": "Status tidak valid"}), 400
-    reservation_repo.update_status(id, status)
+    
+    admin = user_repo.get_by_id(request.user_id)
+    admin.konfirmasiPesanan(reservation_repo, id, status)
     return jsonify({"success": True})
 
 
