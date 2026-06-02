@@ -171,76 +171,120 @@ class BaseRepository(ABC):
 # MODEL CLASSES
 # ─────────────────────────────────────────
 
-class User:
-    def __init__(self, id, name, email, phone, role, created_at=None, **kwargs):
-        self.id = id
-        self.name = name
-        self.email = email
-        self.phone = phone
-        self.role = role
-        self.created_at = created_at
+class Pengguna(ABC):
+    """<<Interface>> Pengguna"""
+    def __init__(self, id, username, emailPengguna, password=None):
+        self._id = id
+        self._username = username
+        self._emailPengguna = emailPengguna
+        self._password = password
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "email": self.email,
-            "phone": self.phone,
-            "role": self.role,
-            "created_at": self.created_at
-        }
+    @abstractmethod
+    def login(self):
+        pass
+
+    @abstractmethod
+    def logout(self):
+        pass
 
     @staticmethod
     def hash_password(password):
         return hashlib.sha256(password.encode()).hexdigest()
 
-class Admin(User):
+    @abstractmethod
+    def to_dict(self):
+        pass
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+
+class Admin(Pengguna):
+    def __init__(self, id, username, emailPengguna, kodePegawai, password=None, created_at=None, **kwargs):
+        super().__init__(id, username, emailPengguna, password)
+        self.kodePegawai = kodePegawai
+        self.created_at = created_at
+        self.role = "admin"
 
     def kelolaLayanan(self):
-        return "Admin mengelola layanan"
+        pass
 
     def konfirmasiPesanan(self):
-        return "Admin mengonfirmasi pesanan"
-    
-class Customer(User):
+        pass
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def login(self):
+        return True
 
-    def buatPesanan(self):
-        return "Pelanggan membuat pesanan"
-
-    def lihatRiwayat(self):
-        return "Pelanggan melihat riwayat"
-
-class Service:
-    """Model untuk layanan salon"""
-    def __init__(self, id, name, category, description, duration_minutes, price, is_active=True):
-        self.id = id
-        self.name = name
-        self.category = category
-        self.description = description
-        self.duration_minutes = duration_minutes
-        self.price = price
-        self.is_active = is_active
+    def logout(self):
+        pass
 
     def to_dict(self):
         return {
-            "id": self.id,
-            "name": self.name,
+            "id": self._id,
+            "name": self._username,
+            "email": self._emailPengguna,
+            "phone": self.kodePegawai,
+            "role": self.role,
+            "created_at": self.created_at
+        }
+
+
+class Pelanggan(Pengguna):
+    def __init__(self, id, namaLengkap, emailPengguna, noTelp, password=None, created_at=None, **kwargs):
+        super().__init__(id, namaLengkap, emailPengguna, password)
+        self.noTelp = noTelp
+        self.created_at = created_at
+        self.role = "customer"
+
+    def buatPesanan(self):
+        pass
+
+    def lihatRiwayat(self):
+        pass
+
+    def login(self):
+        return True
+
+    def logout(self):
+        pass
+
+    def to_dict(self):
+        return {
+            "id": self._id,
+            "name": self._username,
+            "email": self._emailPengguna,
+            "phone": self.noTelp,
+            "role": self.role,
+            "created_at": self.created_at
+        }
+
+
+class Layanan:
+    """Model untuk layanan salon (Katalog)"""
+    def __init__(self, idLayanan, namaLayanan, category, description, estimasiWaktuPengerjaan, harga, is_active=True):
+        self.idLayanan = idLayanan
+        self.namaLayanan = namaLayanan
+        self.category = category
+        self.description = description
+        self.estimasiWaktuPengerjaan = estimasiWaktuPengerjaan
+        self.harga = harga
+        self.is_active = is_active
+
+    def getInfoLayanan(self):
+        return f"{self.namaLayanan} - Rp {self.harga}"
+
+    def to_dict(self):
+        return {
+            "id": self.idLayanan,
+            "name": self.namaLayanan,
             "category": self.category,
             "description": self.description,
-            "duration_minutes": self.duration_minutes,
-            "price": self.price,
-            "price_formatted": f"Rp {self.price:,.0f}",
+            "duration_minutes": self.estimasiWaktuPengerjaan,
+            "price": self.harga,
+            "price_formatted": f"Rp {self.harga:,.0f}",
             "is_active": bool(self.is_active)
         }
 
 
 class Stylist:
+    """Model untuk stylist"""
     def __init__(self, id, name, specialty, bio, photo_url=None, is_available=True):
         self.id = id
         self.name = name
@@ -260,72 +304,65 @@ class Stylist:
         }
 
 
-class Reservation:
+class Pemesanan:
+    """Model untuk Pemesanan (Transaksi)"""
     VALID_STATUSES = ["pending", "confirmed", "completed", "cancelled"]
 
-    def __init__(self, id, user_id, stylist_id, service_id, reservation_date,
-                 reservation_time, status, notes, total_price, created_at=None):
-        self.id = id
+    def __init__(self, idPesanan, user_id, stylist_id, service_id, tanggalJadwal,
+                 reservation_time, statusPesanan, notes, total_price, created_at=None):
+        self.idPesanan = idPesanan
         self.user_id = user_id
         self.stylist_id = stylist_id
         self.service_id = service_id
-        self.reservation_date = reservation_date
+        self.tanggalJadwal = tanggalJadwal
         self.reservation_time = reservation_time
-        self._status = status
+        self._statusPesanan = statusPesanan
         self.notes = notes
         self.total_price = total_price
         self.created_at = created_at
 
     @property
-    def status(self):
-        return self._status
+    def statusPesanan(self):
+        return self._statusPesanan
 
-    @status.setter
-    def status(self, value):
+    @statusPesanan.setter
+    def statusPesanan(self, value):
         if value not in self.VALID_STATUSES:
             raise ValueError(f"Status tidak valid. Pilih: {self.VALID_STATUSES}")
-        self._status = value
+        self._statusPesanan = value
+
+    def hitungTotalHarga(self):
+        return self.total_price
+
+    def ubahStatus(self, status):
+        self.statusPesanan = status
 
     def to_dict(self):
         return {
-            "id": self.id,
+            "id": self.idPesanan,
             "user_id": self.user_id,
             "stylist_id": self.stylist_id,
             "service_id": self.service_id,
-            "reservation_date": self.reservation_date,
+            "reservation_date": self.tanggalJadwal,
             "reservation_time": self.reservation_time,
-            "status": self._status,
+            "status": self._statusPesanan,
             "notes": self.notes,
             "total_price": self.total_price,
             "total_price_formatted": f"Rp {self.total_price:,.0f}" if self.total_price else "-",
             "created_at": self.created_at
         }
 
-class Payment:
 
-    def __init__(
-        self,
-        id,
-        reservation_id,
-        metode_bayar,
-        status_lunas=False
-    ):
-        self.id = id
-        self.reservation_id = reservation_id
-        self.metode_bayar = metode_bayar
-        self.status_lunas = status_lunas
+class Pembayaran:
+    """Model untuk Pembayaran (Transaksi)"""
+    def __init__(self, idBayar, metodeBayar, statusLunas):
+        self.idBayar = idBayar
+        self.metodeBayar = metodeBayar
+        self.statusLunas = statusLunas
 
     def verifikasiPembayaran(self):
-        self.status_lunas = True
-        return self.status_lunas
+        return self.statusLunas
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "reservation_id": self.reservation_id,
-            "metode_bayar": self.metode_bayar,
-            "status_lunas": self.status_lunas
-        }
 
 # ─────────────────────────────────────────
 # REPOSITORY CLASSES
@@ -334,20 +371,40 @@ class Payment:
 class UserRepository(BaseRepository):
     """Repository untuk operasi data user"""
 
+    def _map_to_user(self, row):
+        if not row:
+            return None
+        if row["role"] == "admin":
+            return Admin(
+                id=row["id"],
+                username=row["name"],
+                emailPengguna=row["email"],
+                kodePegawai=row["phone"],
+                created_at=row["created_at"]
+            )
+        else:
+            return Pelanggan(
+                id=row["id"],
+                namaLengkap=row["name"],
+                emailPengguna=row["email"],
+                noTelp=row["phone"],
+                created_at=row["created_at"]
+            )
+
     def get_all(self):
         rows = self.db.fetchall("SELECT * FROM users ORDER BY created_at DESC")
-        return [User(**{k: v for k, v in r.items()}) for r in rows]
+        return [self._map_to_user(r) for r in rows]
 
     def get_by_id(self, id):
         row = self.db.fetchone("SELECT * FROM users WHERE id = ?", (id,))
-        return User(**{k: v for k, v in row.items()}) if row else None
+        return self._map_to_user(row)
 
     def get_by_email(self, email):
         row = self.db.fetchone("SELECT * FROM users WHERE email = ?", (email,))
         return row
 
     def create(self, name, email, phone, password, role="customer"):
-        password_hash = User.hash_password(password)
+        password_hash = Pengguna.hash_password(password)
         try:
             cursor = self.db.execute(
                 "INSERT INTO users (name, email, phone, password_hash, role) VALUES (?,?,?,?,?)",
@@ -361,7 +418,7 @@ class UserRepository(BaseRepository):
         row = self.get_by_email(email)
         if not row:
             return None
-        if row["password_hash"] == User.hash_password(password):
+        if row["password_hash"] == Pengguna.hash_password(password):
             return row
         return None
 
@@ -371,17 +428,17 @@ class ServiceRepository(BaseRepository):
 
     def get_all(self):
         rows = self.db.fetchall("SELECT * FROM services WHERE is_active = 1 ORDER BY category, name")
-        return [Service(**{k: v for k, v in r.items()}) for r in rows]
+        return [Layanan(r["id"], r["name"], r["category"], r["description"], r["duration_minutes"], r["price"], r["is_active"]) for r in rows]
 
     def get_by_id(self, id):
         row = self.db.fetchone("SELECT * FROM services WHERE id = ?", (id,))
-        return Service(**{k: v for k, v in row.items()}) if row else None
+        return Layanan(row["id"], row["name"], row["category"], row["description"], row["duration_minutes"], row["price"], row["is_active"]) if row else None
 
     def get_by_category(self, category):
         rows = self.db.fetchall(
             "SELECT * FROM services WHERE category = ? AND is_active = 1", (category,)
         )
-        return [Service(**{k: v for k, v in r.items()}) for r in rows]
+        return [Layanan(r["id"], r["name"], r["category"], r["description"], r["duration_minutes"], r["price"], r["is_active"]) for r in rows]
 
     def create(self, name, category, description, duration_minutes, price):
         cursor = self.db.execute(
@@ -574,14 +631,14 @@ class ReservationService:
 
         res_id = self.reservation_repo.create(
             user_id, stylist_id, service_id,
-            reservation_date, reservation_time, notes, service.price
+            reservation_date, reservation_time, notes, service.harga
         )
         return {
             "success": True,
             "message": "Reservasi berhasil dibuat",
             "reservation_id": res_id,
-            "total_price": service.price,
-            "total_price_formatted": f"Rp {service.price:,.0f}"
+            "total_price": service.harga,
+            "total_price_formatted": f"Rp {service.harga:,.0f}"
         }
 
     def cancel_reservation(self, reservation_id, user_id, is_admin=False):
@@ -792,7 +849,7 @@ def create_reservation():
 def update_status(id):
     data = request.json
     status = data.get("status")
-    if status not in Reservation.VALID_STATUSES:
+    if status not in Pemesanan.VALID_STATUSES:
         return jsonify({"success": False, "message": "Status tidak valid"}), 400
     reservation_repo.update_status(id, status)
     return jsonify({"success": True})
