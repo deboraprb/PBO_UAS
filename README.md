@@ -8,6 +8,7 @@ Aplikasi web reservasi salon berbasis Flask dengan konsep OOP (Object-Oriented P
 - Pilih stylist & slot waktu yang tersedia
 - Buat dan batalkan reservasi
 - Dashboard admin untuk manajemen reservasi
+- Statistik salon
 
 ## Cara Menjalankan
 
@@ -30,4 +31,4 @@ Aplikasi web reservasi salon berbasis Flask dengan konsep OOP (Object-Oriented P
 ## Teknologi
 - Backend: Python, Flask, SQLite
 - Frontend: HTML, CSS, Vanilla JavaScript
-- Arsitektur: OOP — Model, Repository, Service, Route
+- Arsitektur: OOP — Model, Repository, Service, Route    
