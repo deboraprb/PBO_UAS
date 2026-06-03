@@ -88,6 +88,15 @@ class DatabaseManager:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
+
+            CREATE TABLE IF NOT EXISTS payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                reservation_id INTEGER NOT NULL,
+                payment_method TEXT NOT NULL,
+                is_paid INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (reservation_id) REFERENCES reservations(id)
+            );
         """)
         self.conn.commit()
         self._seed_data()
@@ -245,9 +254,9 @@ class Pelanggan(Pengguna):
         self.created_at = created_at
         self.role = "customer"
 
-    def buatPesanan(self, service_res, stylist_id, service_id, reservation_date, reservation_time, notes=""):
+    def buatPesanan(self, service_res, stylist_id, service_id, reservation_date, reservation_time, notes="", payment_method="Cash di Kasir"):
         return service_res.create_reservation(
-            self._id, stylist_id, service_id, reservation_date, reservation_time, notes
+            self._id, stylist_id, service_id, reservation_date, reservation_time, notes, payment_method
         )
 
     def lihatRiwayat(self, repo_res):
@@ -378,6 +387,7 @@ class Pembayaran:
         self.statusLunas = statusLunas
 
     def verifikasiPembayaran(self):
+        self.statusLunas = True
         return self.statusLunas
 
 
@@ -627,7 +637,7 @@ class ReservationService:
         return [t for t in self.AVAILABLE_TIMES if t not in booked_times]
 
     def create_reservation(self, user_id, stylist_id, service_id,
-                           reservation_date, reservation_time, notes=""):
+                           reservation_date, reservation_time, notes="", payment_method="Cash di Kasir"):
         # Validasi tanggal
         try:
             res_date = datetime.strptime(reservation_date, "%Y-%m-%d").date()
@@ -650,10 +660,19 @@ class ReservationService:
             user_id, stylist_id, service_id,
             reservation_date, reservation_time, notes, service.harga
         )
+        
+        # Simpan informasi pembayaran (Terhubung dengan class Pembayaran)
+        pembayaran = Pembayaran(idBayar=None, metodeBayar=payment_method, statusLunas=False)
+        DatabaseManager().execute(
+            "INSERT INTO payments (reservation_id, payment_method, is_paid) VALUES (?, ?, ?)",
+            (res_id, pembayaran.metodeBayar, 1 if pembayaran.statusLunas else 0)
+        )
+
         return {
             "success": True,
             "message": "Reservasi berhasil dibuat",
             "reservation_id": res_id,
+            "payment_method": pembayaran.metodeBayar,
             "total_price": service.harga,
             "total_price_formatted": f"Rp {service.harga:,.0f}"
         }
@@ -876,7 +895,8 @@ def create_reservation():
             data.get("service_id"),
             data.get("reservation_date"),
             data.get("reservation_time"),
-            data.get("notes", "")
+            data.get("notes", ""),
+            data.get("payment_method", "Cash di Kasir")
         )
     else:
         result = reservation_service.create_reservation(
@@ -885,7 +905,8 @@ def create_reservation():
             data.get("service_id"),
             data.get("reservation_date"),
             data.get("reservation_time"),
-            data.get("notes", "")
+            data.get("notes", ""),
+            data.get("payment_method", "Cash di Kasir")
         )
     return jsonify(result), 201 if result["success"] else 400
 
