@@ -606,6 +606,16 @@ tr:hover td { background: var(--cream); }
     <div class="booking-step" id="bstep-4">
       <h3 class="serif" style="font-size:28px;margin-bottom:8px;">Konfirmasi Reservasi</h3>
       <p style="color:var(--text-muted);margin-bottom:24px;font-size:14px;">Periksa detail reservasi Anda sebelum mengkonfirmasi.</p>
+      
+      <div class="form-group" style="margin-bottom:24px;">
+        <label class="form-label">Metode Pembayaran</label>
+        <select class="form-control" id="payment-method" onchange="App.booking.updatePaymentMethod()">
+          <option value="Cash di Kasir">Cash di Kasir</option>
+          <option value="Transfer Bank">Transfer Bank</option>
+          <option value="E-Wallet (OVO/GoPay)">E-Wallet (OVO/GoPay)</option>
+        </select>
+      </div>
+
       <div class="summary-box" id="booking-summary"></div>
       <div style="display:flex;justify-content:space-between;margin-top:32px;">
         <button class="btn btn-outline" onclick="App.booking.prevStep()">← Kembali</button>
@@ -1084,7 +1094,7 @@ class ServiceCatalog {
 class BookingFlow {
   constructor() {
     this.currentStep = 1;
-    this.data = { service: null, stylist: null, date: null, time: null, notes: '' };
+    this.data = { service: null, stylist: null, date: null, time: null, notes: '', paymentMethod: 'Cash di Kasir' };
     this.stylists = [];
   }
 
@@ -1176,27 +1186,37 @@ class BookingFlow {
     }
   }
 
+  updatePaymentMethod() {
+    this.data.paymentMethod = document.getElementById('payment-method')?.value || 'Cash di Kasir';
+    this.renderSummary();
+  }
+
   renderSummary() {
     const d = this.data;
     document.getElementById('booking-notes') && (d.notes = document.getElementById('booking-notes').value);
+    if (!d.paymentMethod) d.paymentMethod = document.getElementById('payment-method')?.value || 'Cash di Kasir';
+
     document.getElementById('booking-summary').innerHTML = `
       <div class="summary-row"><span class="label">Layanan</span><span>${d.service?.name}</span></div>
       <div class="summary-row"><span class="label">Stylist</span><span>${d.stylist?.name}</span></div>
       <div class="summary-row"><span class="label">Tanggal</span><span>${d.date}</span></div>
       <div class="summary-row"><span class="label">Waktu</span><span>${d.time}</span></div>
       <div class="summary-row"><span class="label">Catatan</span><span>${d.notes || '—'}</span></div>
+      <div class="summary-row"><span class="label">Pembayaran</span><span>${d.paymentMethod}</span></div>
       <div class="summary-row"><span class="label">Total</span><span class="summary-total">${d.service?.price_formatted}</span></div>`;
   }
 
   async confirm() {
     const d = this.data;
     d.notes = document.getElementById('booking-notes')?.value || '';
+    d.paymentMethod = document.getElementById('payment-method')?.value || 'Cash di Kasir';
     const result = await ApiClient.post('/reservations', {
       service_id: d.service.id,
       stylist_id: d.stylist.id,
       reservation_date: d.date,
       reservation_time: d.time,
-      notes: d.notes
+      notes: d.notes,
+      payment_method: d.paymentMethod
     });
     if (result.success) {
       UIManager.toast('Reservasi berhasil dibuat! ✓', 'success');
@@ -1210,7 +1230,7 @@ class BookingFlow {
 
   reset() {
     this.currentStep = 1;
-    this.data = { service: null, stylist: null, date: null, time: null, notes: '' };
+    this.data = { service: null, stylist: null, date: null, time: null, notes: '', paymentMethod: 'Cash di Kasir' };
     this.renderStep();
     document.getElementById('btn-next-1').disabled = true;
     document.getElementById('btn-next-2').disabled = true;
