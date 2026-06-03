@@ -12,7 +12,7 @@ AURA SALON adalah sistem reservasi layanan kecantikan berbasis web yang dirancan
 - Registrasi & Login pengguna
 - Lihat layanan salon (hair, skin, nail, spa)
 - Pilih layanan, stylist & slot waktu yang tersedia
-- Buat dan batalkan reservasi
+- Buat, pembayaran dan batalkan reservasi
 - Dashboard admin untuk manajemen reservasi
 
 ## Cara Menjalankan
