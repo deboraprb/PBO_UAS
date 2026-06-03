@@ -28,14 +28,21 @@ AURA SALON adalah sistem reservasi layanan kecantikan berbasis web yang dirancan
    python app.py
 ```
 
-3. Buka browser ke `http://localhost:5000`
+3. Buka web dari file explorer, masuk ke folder frontend dan tekan file index.
 
 ## Akun Admin Default
 - Email: `admin@aurasalon.com`
 - Password: `admin123`
 
 ## Implementasi Object-Oriented Programming
-1. Encapsulation: diterapkan pada DatabaseManager yang membungkus akses database, serta atribut status pada Reservation yang dilindungi menggunakan property dan setter.
-2. Inheritance: diterapkan pada Admin dan Customer yang mewarisi class User, serta semua repository (UserRepository, ServiceRepository, StylistRepository, ReservationRepository) yang mewarisi BaseRepository.
-3. Abstraction: diterapkan pada BaseRepository yang menggunakan ABC dan @abstractmethod untuk method get_all() dan get_by_id() yang wajib diimplementasikan oleh class turunan.
-4. Polymorphism: diterapkan pada method get_all() di setiap repository yang memiliki implementasi berbeda sesuai tabel masing-masing (users, services, stylists, reservations).
+1. Encapsulation: Enkapsulasi diterapkan pada kelas Pengguna dan Pemesanan. Atribut penting seperti _id, _username, _emailPengguna, _password, dan _statusPesanan disembunyikan dari akses langsung. Pada kelas Pemesanan, property statusPesanan digunakan untuk mengontrol perubahan status agar hanya menerima nilai yang valid.
+2. Inheritance: Kelas Admin dan Pelanggan merupakan turunan dari kelas abstrak Pengguna. Dengan pewarisan, kedua kelas dapat menggunakan atribut dan method dasar yang sama tanpa perlu menuliskan ulang kode.
+3. Abstraction: Abstraksi diterapkan melalui penggunaan Abstract Base Class (ABC) pada kelas Pengguna dan BaseRepository. Method abstrak seperti login(), logout(), to_dict(), get_all(), dan get_by_id() mendefinisikan kontrak yang wajib diimplementasikan oleh setiap kelas turunannya.
+4. Polymorphism: Method login(), logout(), dan to_dict() didefinisikan pada kelas abstrak Pengguna dan diimplementasikan ulang pada kelas Admin serta Pelanggan. Hal ini memungkinkan objek yang berbeda menggunakan method yang sama dengan perilaku yang sesuai dengan perannya.
+
+## Tampilan Aplikasi
+![Beranda](tampilan/1.png)
+![Layanan](tampilan/2.png)
+![Reservasi](tampilan/3.png)
+![Tentang](tampilan/4.png)
+![Admin](tampilan/5.png)
