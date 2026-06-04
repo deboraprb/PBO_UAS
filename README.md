@@ -35,10 +35,10 @@ AURA SALON adalah sistem reservasi layanan kecantikan berbasis web yang dirancan
 - Password: `admin123`
 
 ## Implementasi Object-Oriented Programming
-1. Encapsulation: Enkapsulasi diterapkan pada kelas Pengguna dan Pemesanan. Atribut penting seperti _id, _username, _emailPengguna, _password, dan _statusPesanan disembunyikan dari akses langsung. Pada kelas Pemesanan, property statusPesanan digunakan untuk mengontrol perubahan status agar hanya menerima nilai yang valid.
-2. Inheritance: Kelas Admin dan Pelanggan merupakan turunan dari kelas abstrak Pengguna. Dengan pewarisan, kedua kelas dapat menggunakan atribut dan method dasar yang sama tanpa perlu menuliskan ulang kode.
-3. Abstraction: Abstraksi diterapkan melalui penggunaan Abstract Base Class (ABC) pada kelas Pengguna dan BaseRepository. Method abstrak seperti login(), logout(), to_dict(), get_all(), dan get_by_id() mendefinisikan kontrak yang wajib diimplementasikan oleh setiap kelas turunannya.
-4. Polymorphism: Method login(), logout(), dan to_dict() didefinisikan pada kelas abstrak Pengguna dan diimplementasikan ulang pada kelas Admin serta Pelanggan. Hal ini memungkinkan objek yang berbeda menggunakan method yang sama dengan perilaku yang sesuai dengan perannya.
+1. Encapsulation: Enkapsulasi diterapkan pada kelas Pengguna dan Pemesanan. Atribut penting seperti _id, _username, _emailPengguna, _password, dan _statusPesanan disembunyikan dari akses langsung. Pada kelas Pemesanan, property statusPesanan digunakan untuk mengontrol perubahan status agar hanya menerima nilai yang valid
+2. Inheritance: Kelas Admin dan Pelanggan merupakan turunan dari kelas abstrak Pengguna. Dengan pewarisan, kedua kelas dapat menggunakan atribut dan method dasar yang sama tanpa perlu menuliskan ulang kode
+3. Abstraction: Abstraksi diterapkan melalui penggunaan Abstract Base Class (ABC) pada kelas Pengguna dan BaseRepository. Method abstrak seperti login(), logout(), to_dict(), get_all(), dan get_by_id() mendefinisikan kontrak yang wajib diimplementasikan oleh setiap kelas turunannya
+4. Polymorphism: Method login(), logout(), dan to_dict() didefinisikan pada kelas abstrak Pengguna dan diimplementasikan ulang pada kelas Admin serta Pelanggan. Hal ini memungkinkan objek yang berbeda menggunakan method yang sama dengan perilaku yang sesuai dengan perannya
 
 ## Tampilan Aplikasi
 ![Beranda](tampilan/1.png)
